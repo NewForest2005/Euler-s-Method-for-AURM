@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description"
+    content="Simulación interactiva del método de Euler para el movimiento con resistencia aerodinámica.">
+  <title>MeNewlab — MRUA con restricciones</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">∫</span><span>MeNew<span class="accent">Lab</span></span></div>
+    <div class="eyebrow">METODO NUMERICO · INTERACTIVO</div>
+  </header>
+
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <p class="kicker">Movimiento con resistencia del aire</p>
+        <h1>Ver Metodo de Euler<br><em>en movimiento.</em></h1>
+        <p class="intro">
+          Explora cómo una sencilla aproximación numérica sigue a un objeto a través de la resistencia del aire, la
+          gravedad y el paso del tiempo.
+        </p>
+      </div>
+      <div class="equation-card">
+        <span>Actualizacion de Euler</span>
+        <strong>xₙ₊₁ = xₙ + vₙ Δt</strong>
+        <strong>vₙ₊₁ = vₙ + a(vₙ) Δt</strong>
+      </div>
+    </section>
+
+    <section class="dashboard-grid">
+      <article class="panel motion-panel">
+        <div class="panel-heading">
+          <div>
+            <span class="section-label">SIMULACION EN VIVO</span>
+            <h2 id="motionTitle">Objeto en caida libre</h2>
+          </div>
+          <span id="statusPill" class="status-pill">READY</span>
+        </div>
+        <canvas id="motionCanvas" aria-label="Visualización de movimiento animado"></canvas>
+        <div class="metric-row">
+          <div><span>TIEMPO</span><strong id="timeMetric">0.00 <small>s</small></strong></div>
+          <div><span>POSICION</span><strong id="positionMetric">0.00 <small>m</small></strong></div>
+          <div><span>VELOCIDAD</span><strong id="velocityMetric">0.00 <small>m/s</small></strong></div>
+          <div><span>ERROR</span><strong id="errorMetric">0.000 <small>m</small></strong></div>
+        </div>
+        <div class="transport">
+          <button id="playButton" class="primary-button">▶ <span>Play</span></button>
+          <button id="resetButton" class="secondary-button">↺ Reset</button>
+          <label class="speed-control">
+            Speed
+            <input id="speedInput" type="range" min="0.25" max="4" value="1" step="0.25">
+            <output id="speedOutput">1×</output>
+          </label>
+        </div>
+      </article>
+
+      <aside class="panel controls-panel">
+        <div class="panel-heading">
+          <div>
+            <span class="section-label">SETUP EXPERIMENTAL</span>
+            <h2>Parametros</h2>
+          </div>
+          <span class="live-dot">● VIVO</span>
+        </div>
+        <label class="field-label" for="modelSelect">Modelo de rozamiento</label>
+        <select id="modelSelect">
+          <option value="quadratic-gravity">Cuadrático + gravedad · a = g − kv²</option>
+          <option value="linear-gravity">Lineal + gravedad · a = g − kv</option>
+          <option value="quadratic">Cuadrático solamente · a = −kv²</option>
+          <option value="linear">Lineal solamente · a = −kv</option>
+        </select>
+        <p id="modelDescription" class="field-help">Caída vertical desde el reposo con resistencia del aire cuadrática..
+        </p>
+        <div class="fields-two">
+          <label>
+            <span>Coeficiente de rozamiento <b>k</b></span>
+            <div class="input-unit">
+              <input id="kInput" type="number" min="0.001" max="2" step="0.001" value="0.08">
+              <i>1/m</i>
+            </div>
+          </label>
+          <label>
+            <span>Salto de tiempo <b>Δt</b></span>
+            <div class="input-unit">
+              <input id="dtInput" type="number" min="0.001" max="0.5" step="0.001" value="0.02">
+              <i>s</i>
+            </div>
+          </label>
+        </div>
+        <div class="fields-two">
+          <label>
+            <span>Velocidad inicial <b>v₀</b></span>
+            <div class="input-unit">
+              <input id="v0Input" type="number" min="0" max="100" step="0.1" value="0">
+              <i>m/s</i>
+            </div>
+          </label>
+          <label>
+            <span>Tiempo total <b>T</b></span>
+            <div class="input-unit">
+              <input id="totalTimeInput" type="number" min="0.5" max="60" step="0.5" value="12">
+              <i>s</i>
+            </div>
+          </label>
+        </div>
+        <label class="field-label" for="gInput">Aceleracion gravitacional <b>g</b></label>
+        <div class="input-unit full">
+          <input id="gInput" type="number" min="0" max="30" step="0.01" value="9.81">
+          <i>m/s²</i>
+        </div>
+        <div class="control-note">
+          <span>⌁</span>
+          <p>
+            <strong> Mas pequeno Δt = mayor precision.</strong><br>
+            El metodo de Euler aproxima la curva un salto constante de tiempo a la vez.
+          </p>
+        </div>
+        <button id="applyButton" class="apply-button">Aplicar parameteros <span>→</span></button>
+        <p id="errorMessage" class="error-message" role="alert"></p>
+      </aside>
+    </section>
+
+    <section class="charts-heading">
+      <div>
+        <span class="section-label">ANALISIS NUMERICO</span>
+        <h2>Euler vs. solucion analitica</h2>
+      </div>
+      <div class="legend">
+        <span><i class="legend-line euler-line"></i>Euler</span>
+        <span><i class="legend-line analytical-line"></i>Analytica</span>
+      </div>
+    </section>
+    <section class="charts-grid">
+      <article class="chart-card">
+        <h3>Posicion <span>(m)</span></h3><canvas id="positionChart"></canvas>
+      </article>
+      <article class="chart-card">
+        <h3>Velocidad <span>(m/s)</span></h3><canvas id="velocityChart"></canvas>
+      </article>
+      <article class="chart-card">
+        <h3>Velocidad vs. posicion</h3><canvas id="phaseChart"></canvas>
+      </article>
+    </section>
+
+    <section class="insight-row">
+      <div class="insight-icon">Δ</div>
+      <div>
+        <strong id="insightTitle">Error numerico permanece pequeno</strong>
+        <p id="insightText">
+          Aplicamos parametros para comparar la aproximacion de Euler con la solucion analitica.
+        </p>
+      </div>
+      <div class="accuracy">
+        <span>ERROR MAX DE POSICION</span>
+        <strong id="maxPositionError">0.000 m</strong>
+      </div>
+      <div class="accuracy">
+        <span>ERROR MAX DE VELOCIDAD</span>
+        <strong id="maxVelocityError">0.000 m/s</strong>
+      </div>
+    </section>
+    <footer>
+      <span>MeNewlab · Exploramos metodos numericos</span>
+      <span>El movimiento se da en direccion positiva</span>
+    </footer>
+  </main>
+  <script src="simulation.js"></script>
+</body>
+
+</html>
