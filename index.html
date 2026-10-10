@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description"
     content="Simulación interactiva del método de Euler para el movimiento con resistencia aerodinámica.">
-  <title>MeNewlab — MRUA con restricciones</title>
+  <title>MeNewLab — Movimiento con rozamiento</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -20,14 +20,14 @@
     <section class="hero">
       <div>
         <p class="kicker">Movimiento con resistencia del aire</p>
-        <h1>Ver Metodo de Euler<br><em>en movimiento.</em></h1>
+        <h1>Ver el método de Euler<br><em>en movimiento.</em></h1>
         <p class="intro">
           Explora cómo una sencilla aproximación numérica sigue a un objeto a través de la resistencia del aire, la
           gravedad y el paso del tiempo.
         </p>
       </div>
       <div class="equation-card">
-        <span>Actualizacion de Euler</span>
+        <span>Actualización de Euler</span>
         <strong>xₙ₊₁ = xₙ + vₙ Δt</strong>
         <strong>vₙ₊₁ = vₙ + a(vₙ) Δt</strong>
       </div>
@@ -38,9 +38,9 @@
         <div class="panel-heading">
           <div>
             <span class="section-label">SIMULACION EN VIVO</span>
-            <h2 id="motionTitle">Objeto en caida libre</h2>
+            <h2 id="motionTitle">Objeto en caída libre</h2>
           </div>
-          <span id="statusPill" class="status-pill">READY</span>
+          <span id="statusPill" class="status-pill">LISTO</span>
         </div>
         <canvas id="motionCanvas" aria-label="Visualización de movimiento animado"></canvas>
         <div class="metric-row">
@@ -50,10 +50,10 @@
           <div><span>ERROR</span><strong id="errorMetric">0.000 <small>m</small></strong></div>
         </div>
         <div class="transport">
-          <button id="playButton" class="primary-button">▶ <span>Play</span></button>
-          <button id="resetButton" class="secondary-button">↺ Reset</button>
+          <button id="playButton" class="primary-button">▶ <span>Reproducir</span></button>
+          <button id="resetButton" class="secondary-button">↺ Reiniciar</button>
           <label class="speed-control">
-            Speed
+            Velocidad
             <input id="speedInput" type="range" min="0.25" max="4" value="1" step="0.25">
             <output id="speedOutput">1×</output>
           </label>
@@ -64,7 +64,7 @@
         <div class="panel-heading">
           <div>
             <span class="section-label">SETUP EXPERIMENTAL</span>
-            <h2>Parametros</h2>
+            <h2>Parámetros</h2>
           </div>
           <span class="live-dot">● VIVO</span>
         </div>
@@ -74,8 +74,9 @@
           <option value="linear-gravity">Lineal + gravedad · a = g − kv</option>
           <option value="quadratic">Cuadrático solamente · a = −kv²</option>
           <option value="linear">Lineal solamente · a = −kv</option>
+          <option value="dragon">Dragon · atmósfera variable</option>
         </select>
-        <p id="modelDescription" class="field-help">Caída vertical desde el reposo con resistencia del aire cuadrática..
+        <p id="modelDescription" class="field-help">Caída vertical desde el reposo con resistencia del aire cuadrática.
         </p>
         <div class="fields-two">
           <label>
@@ -104,7 +105,7 @@
           <label>
             <span>Tiempo total <b>T</b></span>
             <div class="input-unit">
-              <input id="totalTimeInput" type="number" min="0.5" max="60" step="0.5" value="12">
+              <input id="totalTimeInput" type="number" min="0.5" max="5000" step="0.5" value="12">
               <i>s</i>
             </div>
           </label>
@@ -114,11 +115,70 @@
           <input id="gInput" type="number" min="0" max="30" step="0.01" value="9.81">
           <i>m/s²</i>
         </div>
+        <p class="subsection-label">Parámetros físicos</p>
+        <div class="fields-two">
+          <label>
+            <span>Diámetro <b>D</b></span>
+            <div class="input-unit">
+              <input id="diameterInput" type="number" min="0.001" max="100" step="0.01" value="4">
+              <i>m</i>
+            </div>
+          </label>
+          <label>
+            <span>Masa <b>m</b></span>
+            <div class="input-unit">
+              <input id="massInput" type="number" min="0.001" max="1000000" step="1" value="9500">
+              <i>kg</i>
+            </div>
+          </label>
+        </div>
+        <div class="fields-two">
+          <label>
+            <span>Densidad al nivel del mar <b>ρ₀</b></span>
+            <div class="input-unit">
+              <input id="rhoInput" type="number" min="0.001" max="20" step="0.001" value="1.225">
+              <i>kg/m³</i>
+            </div>
+          </label>
+          <label>
+            <span>Viscosidad <b>μ</b></span>
+            <div class="input-unit">
+              <input id="muInput" type="number" min="0.0000001" max="1" step="0.0000001" value="0.0000181">
+              <i>Pa·s</i>
+            </div>
+          </label>
+        </div>
+        <div class="fields-two">
+          <label>
+            <span>Coeficiente <b>Cₐ</b></span>
+            <div class="input-unit">
+              <input id="caInput" type="number" min="0.01" max="5" step="0.01" value="0.5">
+              <i>—</i>
+            </div>
+          </label>
+          <label>
+            <span>Temperatura <b>T</b></span>
+            <div class="input-unit">
+              <input id="atmoTempInput" type="number" min="100" max="500" step="1" value="288">
+              <i>K</i>
+            </div>
+          </label>
+        </div>
+        <label class="field-label" for="altitudeInput">Altitud inicial de Dragon <b>h₀</b></label>
+        <div class="input-unit full">
+          <input id="altitudeInput" type="number" min="0" max="200000" step="100" value="80000">
+          <i>m</i>
+        </div>
+        <div class="physical-output">
+          <span>k₁ físico</span><strong id="physicalK1">—</strong>
+          <span>k₂ físico</span><strong id="physicalK2">—</strong>
+          <span>Re actual</span><strong id="reMetric">—</strong>
+        </div>
         <div class="control-note">
           <span>⌁</span>
           <p>
-            <strong> Mas pequeno Δt = mayor precision.</strong><br>
-            El metodo de Euler aproxima la curva un salto constante de tiempo a la vez.
+            <strong>Un Δt más pequeño = mayor precisión.</strong><br>
+            El método de Euler aproxima la curva un paso constante de tiempo a la vez.
           </p>
         </div>
         <button id="applyButton" class="apply-button">Aplicar parameteros <span>→</span></button>
@@ -129,11 +189,11 @@
     <section class="charts-heading">
       <div>
         <span class="section-label">ANALISIS NUMERICO</span>
-        <h2>Euler vs. solucion analitica</h2>
+        <h2>Euler vs. solución analítica</h2>
       </div>
       <div class="legend">
         <span><i class="legend-line euler-line"></i>Euler</span>
-        <span><i class="legend-line analytical-line"></i>Analytica</span>
+        <span id="analyticalLegend"><i class="legend-line analytical-line"></i>Analítica</span>
       </div>
     </section>
     <section class="charts-grid">
@@ -148,12 +208,30 @@
       </article>
     </section>
 
+    <section class="drag-analysis">
+      <article class="chart-card drag-chart-card">
+        <h3>Coeficiente de arrastre de una esfera <span>Cₐ frente a Re</span></h3>
+        <canvas id="dragChart" aria-label="Gráfica del coeficiente de arrastre frente al número de Reynolds"></canvas>
+        <p class="chart-note">Curva orientativa: en flujo laminar domina el modelo lineal; para Re &gt; 1 domina el
+          modelo cuadrático.</p>
+      </article>
+      <article class="chart-card regime-card">
+        <h3>Régimen del flujo</h3>
+        <div class="regime-value" id="regimeValue">—</div>
+        <p id="regimeText">Selecciona un modelo para calcular el número de Reynolds.</p>
+        <div class="formula-box">
+          <span>Reynolds</span>
+          <strong>Re = vDρ / μ</strong>
+        </div>
+      </article>
+    </section>
+
     <section class="insight-row">
       <div class="insight-icon">Δ</div>
       <div>
         <strong id="insightTitle">Error numerico permanece pequeno</strong>
         <p id="insightText">
-          Aplicamos parametros para comparar la aproximacion de Euler con la solucion analitica.
+          Aplica los parámetros para comparar la aproximación de Euler con la solución analítica.
         </p>
       </div>
       <div class="accuracy">
@@ -166,7 +244,7 @@
       </div>
     </section>
     <footer>
-      <span>MeNewlab · Exploramos metodos numericos</span>
+      <span>MeNewLab · Exploramos métodos numéricos</span>
       <span>El movimiento se da en direccion positiva</span>
     </footer>
   </main>

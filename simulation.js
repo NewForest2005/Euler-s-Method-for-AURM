@@ -1,6 +1,6 @@
-// EulerLab — physics, numerical method, charts, and animation
+// EulerLab — física, método numérico, gráficas y animación.
 
-// Short helper for selecting elements from the page.
+// Función auxiliar para seleccionar elementos de la página.
 const $ = (id) => document.getElementById(id);
 
 // Controles y elementos de display
@@ -15,7 +15,12 @@ const els = {
   insightTitle: $("insightTitle"), insightText: $("insightText"),
   positionChart: $("positionChart"),
   velocityChart: $("velocityChart"),
-  phaseChart: $("phaseChart")
+  phaseChart: $("phaseChart"),
+  diameter: $("diameterInput"), mass: $("massInput"), rho: $("rhoInput"),
+  mu: $("muInput"), ca: $("caInput"), atmoTemp: $("atmoTempInput"),
+  altitude: $("altitudeInput"), physicalK1: $("physicalK1"), physicalK2: $("physicalK2"),
+  re: $("reMetric"), dragChart: $("dragChart"), regimeValue: $("regimeValue"),
+  regimeText: $("regimeText"), analyticalLegend: $("analyticalLegend")
 };
 
 let state = { config: null, data: null, currentTime: 0, running: false, lastFrame: 0 };
@@ -24,18 +29,72 @@ const descriptions = {
   "quadratic-gravity": "Caída vertical desde el reposo con resistencia del aire cuadrática.",
   "linear-gravity": "Caída vertical desde el reposo con resistencia del aire lineal.",
   quadratic: "Lanzamiento horizontal frenado por rozamiento cuadrático.",
-  linear: "Lanzamiento horizontal frenado por rozamiento lineal."
+  linear: "Lanzamiento horizontal frenado por rozamiento lineal.",
+  dragon: "Reentrada vertical de Dragon con densidad atmosférica variable."
 };
 
-// Aceleracion para cada modelo fisico.
-function acceleration(velocity, config) {
+const AIR = {
+  kB: 1.380649e-23,
+  m0: 4.81e-26
+};
+
+function isDragon(config) {
+  return config.model === "dragon";
+}
+
+// Densidad exponencial de la atmósfera, usando la escala de altura H.
+function atmosphericDensity(altitude, config) {
+  const safeAltitude = Math.max(0, altitude);
+  const scaleHeight = (AIR.kB * config.atmoTemp) / (AIR.m0 * config.g);
+  return config.rho0 * Math.exp(-safeAltitude / scaleHeight);
+}
+
+// Aproximación educativa de la curva de una esfera C_a(Re).
+function dragCoefficientFromRe(reynolds) {
+  if (reynolds <= 0) return 0.44;
+  if (reynolds < 1) return 24 / reynolds;
+  if (reynolds < 1000) {
+    return (24 / reynolds) * (1 + 0.15 * reynolds ** 0.687);
+  }
+  if (reynolds < 200000) return 0.44;
+  if (reynolds < 300000) return 0.44 - 0.24 * ((reynolds - 200000) / 100000);
+  return 0.20;
+}
+
+function physicalCoefficients(config, density = config.rho0) {
+  const area = Math.PI * config.diameter ** 2 / 4;
+  const k1 = (density * config.ca * area) / (2 * config.mass);
+  const k2 = (3 * Math.PI * config.diameter * config.mu) / config.mass;
+  return { area, k1, k2 };
+}
+
+function dragonPhysics(position, velocity, config) {
+  const altitude = config.altitude - position;
+  const density = atmosphericDensity(altitude, config);
+  const reynolds = Math.abs(velocity) * config.diameter * density / config.mu;
+  const dragCoefficient = dragCoefficientFromRe(reynolds);
+  const { area, k1 } = physicalCoefficients(config, density);
+  return {
+    acceleration: config.g - k1 * velocity * Math.abs(velocity),
+    altitude,
+    density,
+    reynolds,
+    dragCoefficient,
+    area,
+    k1
+  };
+}
+
+// Aceleración para cada modelo físico.
+function acceleration(position, velocity, config) {
+  if (isDragon(config)) return dragonPhysics(position, velocity, config).acceleration;
   const drag = config.model.includes("quadratic")
     ? config.k * velocity * Math.abs(velocity)
     : config.k * velocity;
   return config.model.includes("gravity") ? config.g - drag : -drag;
 }
 
-// Soluciones analiticas utilizadas para comparar la aproximacion dada por Euler.
+// Soluciones analíticas para comparar la aproximación de Euler.
 function analytical(time, config) {
   const { k, g, v0 } = config;
 
@@ -58,7 +117,7 @@ function analytical(time, config) {
     };
   }
 
-  // Quadratic drag with gravity, starting from rest.
+  // Rozamiento cuadrático con gravedad, comenzando desde el reposo.
   const q = Math.sqrt(g * k);
   return {
     x: Math.log(Math.cosh(q * time)) / k,
@@ -66,27 +125,36 @@ function analytical(time, config) {
   };
 }
 
-// Euler's method: calculate position and velocity one step at a time.
+// Método de Euler: calcula posición y velocidad paso a paso.
 function simulate(config) {
   const times = [0];
   const positions = [0];
-  const velocities = [config.model.includes("gravity") ? 0 : config.v0];
-  const analyticalPositions = [0];
-  const analyticalVelocities = [velocities[0]];
+  const velocities = [isDragon(config) || !config.model.includes("gravity") ? config.v0 : 0];
+  const analyticalPositions = isDragon(config) ? null : [0];
+  const analyticalVelocities = isDragon(config) ? null : [velocities[0]];
+  const densities = isDragon(config) ? [atmosphericDensity(config.altitude, config)] : null;
+  const reynolds = isDragon(config) ? [0] : null;
   let time = 0;
 
   while (time < config.T - 1e-10) {
     const step = Math.min(config.dt, config.T - time);
+    const currentPosition = positions[positions.length - 1];
     const currentVelocity = velocities[velocities.length - 1];
-    const currentAcceleration = acceleration(currentVelocity, config);
+    const currentAcceleration = acceleration(currentPosition, currentVelocity, config);
     positions.push(positions[positions.length - 1] + currentVelocity * step);
     velocities.push(currentVelocity + currentAcceleration * step);
     time += step;
     times.push(time);
 
-    const exact = analytical(time, config);
-    analyticalPositions.push(exact.x);
-    analyticalVelocities.push(exact.v);
+    if (isDragon(config)) {
+      const local = dragonPhysics(positions[positions.length - 1], velocities[velocities.length - 1], config);
+      densities.push(local.density);
+      reynolds.push(local.reynolds);
+    } else {
+      const exact = analytical(time, config);
+      analyticalPositions.push(exact.x);
+      analyticalVelocities.push(exact.v);
+    }
   }
 
   return {
@@ -94,11 +162,13 @@ function simulate(config) {
     x: positions,
     v: velocities,
     analX: analyticalPositions,
-    analV: analyticalVelocities
+    analV: analyticalVelocities,
+    density: densities,
+    reynolds
   };
 }
 
-// Read controls and reject invalid physical parameters.
+// Lee los controles y rechaza parámetros físicos inválidos.
 function readConfig() {
   const config = {
     model: els.model.value,
@@ -106,28 +176,65 @@ function readConfig() {
     dt: Number(els.dt.value),
     v0: Number(els.v0.value),
     T: Number(els.T.value),
-    g: Number(els.g.value)
+    g: Number(els.g.value),
+    diameter: Number(els.diameter.value),
+    mass: Number(els.mass.value),
+    rho0: Number(els.rho.value),
+    mu: Number(els.mu.value),
+    ca: Number(els.ca.value),
+    atmoTemp: Number(els.atmoTemp.value),
+    altitude: Number(els.altitude.value)
   };
 
   if (!Number.isFinite(config.k) || config.k < 0.001 || config.k > 2) {
-    throw Error("Drag coefficient k must be between 0.001 and 2.");
+    throw Error("El coeficiente k debe estar entre 0.001 y 2.");
   }
   if (!Number.isFinite(config.dt) || config.dt < 0.001 || config.dt > 0.5) {
-    throw Error("Time step Δt must be between 0.001 and 0.5 s.");
+    throw Error("El paso de tiempo Δt debe estar entre 0.001 y 0.5 s.");
   }
-  if (!Number.isFinite(config.T) || config.T < 0.5 || config.T > 60) {
-    throw Error("Total time must be between 0.5 and 60 s.");
+  if (!Number.isFinite(config.T) || config.T < 0.5 || config.T > 5000) {
+    throw Error("El tiempo total debe estar entre 0.5 y 5000 s.");
   }
   if (!Number.isFinite(config.v0) || config.v0 < 0 || config.v0 > 100) {
-    throw Error("Initial velocity must be between 0 and 100 m/s.");
+    throw Error("La velocidad inicial debe estar entre 0 y 100 m/s.");
   }
   if (!Number.isFinite(config.g) || config.g < 0 || config.g > 30) {
-    throw Error("Gravity must be between 0 and 30 m/s².");
+    throw Error("La gravedad debe estar entre 0 y 30 m/s².");
+  }
+  if (isDragon(config) && config.g === 0) {
+    throw Error("Dragon necesita una gravedad mayor que cero.");
+  }
+  if (!Number.isFinite(config.diameter) || config.diameter <= 0) {
+    throw Error("El diámetro debe ser positivo.");
+  }
+  if (!Number.isFinite(config.mass) || config.mass <= 0) {
+    throw Error("La masa debe ser positiva.");
+  }
+  if (!Number.isFinite(config.rho0) || config.rho0 <= 0) {
+    throw Error("La densidad del aire debe ser positiva.");
+  }
+  if (!Number.isFinite(config.mu) || config.mu <= 0) {
+    throw Error("La viscosidad debe ser positiva.");
+  }
+  if (!Number.isFinite(config.ca) || config.ca <= 0) {
+    throw Error("Cₐ debe ser positivo.");
+  }
+  if (!Number.isFinite(config.atmoTemp) || config.atmoTemp <= 0) {
+    throw Error("La temperatura atmosférica debe ser positiva.");
+  }
+  if (!Number.isFinite(config.altitude) || config.altitude < 0) {
+    throw Error("La altitud inicial no puede ser negativa.");
   }
   return config;
 }
 
-// Apply the current controls and generate a fresh simulation.
+function updatePhysicalSummary(config) {
+  const coefficients = physicalCoefficients(config);
+  els.physicalK1.textContent = coefficients.k1.toExponential(2);
+  els.physicalK2.textContent = coefficients.k2.toExponential(2);
+}
+
+// Aplica los controles actuales y genera una simulación nueva.
 function apply() {
   try {
     const config = readConfig();
@@ -142,17 +249,23 @@ function apply() {
     els.desc.textContent = descriptions[config.model];
     els.title.textContent = config.model.includes("gravity")
       ? "Objeto en caída libre"
-      : "Objeto desacelerando por la resistencia";
-    els.status.textContent = "READY";
+      : config.model === "dragon"
+        ? "Reentrada vertical de Dragon"
+        : "Objeto desacelerando por la resistencia";
+    els.status.textContent = "LISTO";
+    els.analyticalLegend.style.display = isDragon(config) ? "none" : "inline";
+    updatePhysicalSummary(config);
     updateMetrics();
     drawMotion();
     drawCharts();
+    drawDragChart();
   } catch (error) {
     els.err.textContent = error.message;
   }
 }
 
 function maxError(values, exactValues) {
+  if (!exactValues) return null;
   return Math.max(...values.map((value, index) => Math.abs(value - exactValues[index])));
 }
 
@@ -173,19 +286,44 @@ function updateMetrics() {
   els.time.innerHTML = `${data.t[index].toFixed(2)} <small>s</small>`;
   els.position.innerHTML = `${data.x[index].toFixed(2)} <small>m</small>`;
   els.velocity.innerHTML = `${data.v[index].toFixed(2)} <small>m/s</small>`;
-  els.error.innerHTML = `${Math.abs(data.x[index] - data.analX[index]).toFixed(3)} <small>m</small>`;
-  els.maxX.textContent = `${positionError.toFixed(3)} m`;
-  els.maxV.textContent = `${velocityError.toFixed(3)} m/s`;
+  if (state.config.model === "dragon") {
+    els.error.innerHTML = "No disponible";
+    els.maxX.textContent = "No disponible";
+    els.maxV.textContent = "No disponible";
+    els.insightTitle.textContent = "Modelo Dragon: sin solución analítica cerrada";
+    els.insightText.textContent = "La comparación se realiza entre pasos de Euler y las variables atmosféricas locales.";
+  } else {
+    els.error.innerHTML = `${Math.abs(data.x[index] - data.analX[index]).toFixed(3)} <small>m</small>`;
+    els.maxX.textContent = `${positionError.toFixed(3)} m`;
+    els.maxV.textContent = `${velocityError.toFixed(3)} m/s`;
+    const relativeError = positionError / (Math.max(...data.analX) || 1);
+    els.insightTitle.textContent = relativeError < 0.01
+      ? "El error numérico permanece pequeño"
+      : "Intenta reducir Δt para mayor precisión";
+    els.insightText.textContent =
+      `El error máximo de posición es ${positionError.toFixed(3)} m en ${state.config.T} segundos.`;
 
-  const relativeError = positionError / (Math.max(...data.analX) || 1);
-  els.insightTitle.textContent = relativeError < 0.01
-    ? "El error numérico permanece pequeño"
-    : "Intenta reducir Δt para mayor precisión";
-  els.insightText.textContent =
-    `El error máximo de posición es ${positionError.toFixed(3)} m en ${state.config.T} segundos.`;
+    if (!state.config.model.includes("gravity") && state.config.v0 === 0) {
+      els.insightTitle.textContent = "Reposo permanente en los casos 1 y 2";
+      els.insightText.textContent =
+        "Con v₀ = 0 y sin gravedad, el rozamiento no puede iniciar el movimiento: x(t) y v(t) permanecen constantes.";
+    }
+  }
+
+  const currentRe = data.reynolds
+    ? data.reynolds[index]
+    : Math.abs(data.v[index]) * state.config.diameter * state.config.rho0 / state.config.mu;
+  els.re.textContent = currentRe > 0 ? currentRe.toFixed(1) : "0";
+  if (currentRe < 1) {
+    els.regimeValue.textContent = "Lineal";
+    els.regimeText.textContent = "Re < 1: la resistencia viscosa domina.";
+  } else {
+    els.regimeValue.textContent = "Cuadrático";
+    els.regimeText.textContent = "Re > 1: la resistencia inercial domina.";
+  }
 }
 
-// Preparar un canvas para renderizado en alta resolucion en pantallas de Retina.
+// Prepara un canvas de alta resolución para pantallas Retina.
 function setupCanvas(canvas) {
   const rectangle = canvas.getBoundingClientRect();
   const pixelRatio = window.devicePixelRatio || 1;
@@ -200,7 +338,7 @@ function range(valuesA, valuesB) {
   return [Math.min(...valuesA, ...valuesB), Math.max(...valuesA, ...valuesB)];
 }
 
-// Dibujo el objeto moviendose y su trayectoria.
+// Dibuja el objeto en movimiento y su trayectoria.
 function drawMotion() {
   const { ctx, w, h } = setupCanvas(els.motion);
   const data = state.data;
@@ -208,7 +346,7 @@ function drawMotion() {
   const index = currentIndex();
   const maxPosition = Math.max(...data.x, 1);
   const ground = h - 43;
-  const vertical = config.model.includes("gravity");
+  const vertical = config.model.includes("gravity") || isDragon(config);
   ctx.clearRect(0, 0, w, h);
 
   ctx.strokeStyle = "#d9e8e3";
@@ -219,10 +357,10 @@ function drawMotion() {
   ctx.stroke();
   ctx.fillStyle = "#9db3ad";
   ctx.font = "10px DM Mono";
-  ctx.fillText(vertical ? "ground" : "start", 30, ground + 22);
+  ctx.fillText(vertical ? "suelo" : "inicio", 30, ground + 22);
   ctx.fillText(`${maxPosition.toFixed(1)} m`, w - 63, ground + 22);
 
-  // Dashed trajectory.
+  // Trayectoria punteada.
   ctx.strokeStyle = "#b9ddd4";
   ctx.setLineDash([4, 5]);
   ctx.beginPath();
@@ -239,7 +377,7 @@ function drawMotion() {
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Current object position.
+  // Posición actual del objeto.
   const positionRatio = data.x[index] / maxPosition;
   const objectX = vertical ? w / 2 : 30 + positionRatio * (w - 60);
   const objectY = vertical ? ground - positionRatio * (ground - 30) : ground;
@@ -256,18 +394,18 @@ function drawMotion() {
 function drawCharts() {
   drawChart(els.positionChart, state.data.x, state.data.analX);
   drawChart(els.velocityChart, state.data.v, state.data.analV);
-  drawChart(els.phaseChart, state.data.x, state.data.v, true);
+  drawChart(els.phaseChart, state.data.v, state.data.analV, true, state.data.analX);
 }
 
-// Draw one of the three analysis charts.
-function drawChart(canvas, values, exactValues, phaseChart = false) {
+// Dibuja una de las tres gráficas de análisis.
+function drawChart(canvas, values, exactValues, phaseChart = false, exactXValues = null) {
   const { ctx, w, h } = setupCanvas(canvas);
   const padding = { left: 35, right: 10, top: 12, bottom: 25 };
   const plotWidth = w - padding.left - padding.right;
   const plotHeight = h - padding.top - padding.bottom;
   const xValues = phaseChart ? state.data.x : state.data.t;
   const yValues = phaseChart ? state.data.v : values;
-  const [minY, maxY] = range(yValues, phaseChart ? state.data.v : exactValues);
+  const [minY, maxY] = range(yValues, exactValues || []);
   const maxX = Math.max(...xValues, 1);
   const yRange = maxY - minY || 1;
   ctx.clearRect(0, 0, w, h);
@@ -276,7 +414,7 @@ function drawChart(canvas, values, exactValues, phaseChart = false) {
   ctx.strokeStyle = "#edf1ef";
   ctx.lineWidth = 1;
 
-  // Horizontal grid lines and y-axis labels.
+  // Líneas horizontales de la cuadrícula y etiquetas del eje vertical.
   for (let row = 0; row < 4; row++) {
     const y = padding.top + (plotHeight * row) / 3;
     ctx.beginPath();
@@ -288,13 +426,13 @@ function drawChart(canvas, values, exactValues, phaseChart = false) {
   ctx.fillText("0", padding.left - 3, h - 7);
   ctx.fillText(maxX.toFixed(1), w - 28, h - 7);
 
-  function drawLine(lineValues, color, dashed) {
+  function drawLine(lineValues, color, dashed, lineXValues = xValues) {
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
     ctx.setLineDash(dashed ? [4, 4] : []);
     ctx.beginPath();
     lineValues.forEach((value, index) => {
-      const x = padding.left + (xValues[index] / maxX) * plotWidth;
+      const x = padding.left + (lineXValues[index] / maxX) * plotWidth;
       const y = padding.top + ((maxY - value) / yRange) * plotHeight;
       if (index === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
@@ -304,10 +442,58 @@ function drawChart(canvas, values, exactValues, phaseChart = false) {
   }
 
   drawLine(values, "#159b88", false);
-  drawLine(exactValues, "#f3835a", true);
+  if (exactValues) {
+    drawLine(exactValues, "#f3835a", true, exactXValues || xValues);
+  }
 }
 
-// Animation loop. Speed changes only playback, not the calculated data.
+// Dibuja la relación aproximada entre el coeficiente de arrastre y Reynolds.
+function drawDragChart() {
+  const { ctx, w, h } = setupCanvas(els.dragChart);
+  const left = 42;
+  const right = 12;
+  const top = 14;
+  const bottom = 28;
+  const width = w - left - right;
+  const height = h - top - bottom;
+  const minLog = -2;
+  const maxLog = 7;
+  const maxCd = 25;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.font = "9px DM Mono";
+  ctx.fillStyle = "#98aaa6";
+  ctx.strokeStyle = "#edf1ef";
+
+  for (let row = 0; row < 4; row++) {
+    const y = top + (height * row) / 3;
+    ctx.beginPath();
+    ctx.moveTo(left, y);
+    ctx.lineTo(w - right, y);
+    ctx.stroke();
+    ctx.fillText((maxCd - (maxCd * row) / 3).toFixed(0), 8, y + 3);
+  }
+
+  ctx.strokeStyle = "#159b88";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i <= 180; i++) {
+    const logRe = minLog + ((maxLog - minLog) * i) / 180;
+    const reynolds = 10 ** logRe;
+    const coefficient = Math.min(maxCd, dragCoefficientFromRe(reynolds));
+    const x = left + ((logRe - minLog) / (maxLog - minLog)) * width;
+    const y = top + (1 - coefficient / maxCd) * height;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.fillText("Re = 1", left + (2 / 9) * width, h - 8);
+  ctx.fillText("Re = 10⁷", w - 52, h - 8);
+  ctx.fillText("Cₐ", 8, top - 3);
+  ctx.fillText("Re (escala log)", w - 88, h - 8);
+}
+
+// Bucle de animación. La velocidad solo cambia la reproducción.
 function animationFrame(now) {
   if (!state.running) return;
   if (!state.lastFrame) state.lastFrame = now;
@@ -319,22 +505,22 @@ function animationFrame(now) {
 
   if (state.currentTime >= state.config.T) {
     state.running = false;
-    els.play.innerHTML = "▶ <span>Play</span>";
-    els.status.textContent = "COMPLETE";
+    els.play.innerHTML = "▶ <span>Reproducir</span>";
+    els.status.textContent = "COMPLETO";
   } else {
     requestAnimationFrame(animationFrame);
   }
 }
 
-// User interactions.
+// Interacciones del usuario.
 els.apply.addEventListener("click", apply);
 
 els.reset.addEventListener("click", () => {
   state.currentTime = 0;
   state.running = false;
   state.lastFrame = 0;
-  els.play.innerHTML = "▶ <span>Play</span>";
-  els.status.textContent = "READY";
+  els.play.innerHTML = "▶ <span>Reproducir</span>";
+  els.status.textContent = "LISTO";
   updateMetrics();
   drawMotion();
 });
@@ -342,8 +528,8 @@ els.reset.addEventListener("click", () => {
 els.play.addEventListener("click", () => {
   if (state.currentTime >= state.config.T) state.currentTime = 0;
   state.running = !state.running;
-  els.play.innerHTML = state.running ? "Ⅱ <span>Pause</span>" : "▶ <span>Play</span>";
-  els.status.textContent = state.running ? "RUNNING" : "PAUSED";
+  els.play.innerHTML = state.running ? "Ⅱ <span>Pausar</span>" : "▶ <span>Reproducir</span>";
+  els.status.textContent = state.running ? "EJECUTANDO" : "PAUSADO";
   if (state.running) {
     state.lastFrame = 0;
     requestAnimationFrame(animationFrame);
@@ -363,8 +549,9 @@ window.addEventListener("resize", () => {
   if (state.data) {
     drawMotion();
     drawCharts();
+    drawDragChart();
   }
 });
 
-// Start the app using the default parameters.
+// Inicia la aplicación con los parámetros predeterminados.
 apply();
