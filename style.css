@@ -2,16 +2,16 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 
 :root {
-  --ink: #0b1a30;        /* Deep midnight blue text (was dark green-ink) */
-  --muted: #64748b;      /* Clean slate gray for muted text */
-  --line: #e2e8f0;       /* Cool, crisp gray line border */
-  --paper: #f4f7fa;      /* Clean ice-blue/white paper background */
-  --card: #ffffff;       /* Pure white card background */
-  --teal: #1d4ed8;       /* Special royal/sapphire blue accent (main accent) */
-  --teal-dark: #1e3a8a;  /* Deep navy blue for hover/dark accents */
-  --orange: #f97316;     /* Vibrant energetic orange (perfect contrast to blue) */
-  --navy: #0f172a;       /* Darkest slate/navy blue background/header tone */
-  --shadow: 0 15px 45px #0b1a300a /* Adjusted shadow using the new midnight ink */
+  --ink: #0b1a30;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --paper: #f4f7fa;
+  --card: #ffffff;
+  --teal: #1d4ed8;
+  --teal-dark: #1e3a8a;
+  --orange: #f97316;
+  --navy: #0f172a;
+  --shadow: 0 15px 45px #0b1a300a
 }
 
 * {
