@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>EulerLab: explicación del proyecto</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.45; color: #17252a; margin: 42px; }
+    h1 { color: #087968; font-size: 28px; border-bottom: 2px solid #159b88; padding-bottom: 8px; }
+    h2 { color: #087968; font-size: 20px; margin-top: 28px; }
+    h3 { color: #294b58; font-size: 16px; margin-top: 20px; }
+    p { margin: 8px 0; }
+    code, pre { font-family: Menlo, monospace; }
+    pre { background: #f1f6f4; padding: 12px; border-left: 3px solid #159b88; }
+    table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+    th, td { border: 1px solid #bccdc8; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: #e3f1ec; color: #087968; }
+    .note { background: #fff4e8; border-left: 4px solid #f3835a; padding: 10px 14px; }
+    .formula { text-align: center; font-family: Georgia, serif; font-size: 16px; margin: 12px; }
+    .small { color: #627572; font-size: 11px; }
+  </style>
+</head>
+<body>
+  <h1>EulerLab: simulación del movimiento con resistencia del aire</h1>
+  <p><strong>Documento explicativo del proyecto</strong></p>
+  <p>Este documento explica qué hace la aplicación, cómo implementa el método de Euler y cómo responde al problema propuesto de física computacional. También describe la interpretación física de los modelos, el cálculo del número de Reynolds, el modo de reentrada de una cápsula Dragon y la forma en que se anima el objeto en pantalla.</p>
+
+  <h2>1. Problema propuesto</h2>
+  <p>El problema pide simular el movimiento unidimensional de un cuerpo cuando su aceleración depende de la velocidad. El tiempo se divide en intervalos pequeños de tamaño <em>Δt</em>. Si en el instante <em>t</em> se conocen la posición <em>x(t)</em>, la velocidad <em>v(t)</em> y la aceleración <em>a(t)</em>, el método de Euler calcula:</p>
+  <p class="formula"><strong>x(t + Δt) = x(t) + v(t) Δt</strong></p>
+  <p class="formula"><strong>v(t + Δt) = v(t) + a(t) Δt</strong></p>
+  <p>Después de actualizar la posición y la velocidad, se calcula la nueva aceleración con los nuevos valores. El procedimiento se repite hasta alcanzar el tiempo total de simulación.</p>
+
+  <h2>2. Objetivo de EulerLab</h2>
+  <p>EulerLab convierte ese procedimiento matemático en una aplicación interactiva. El usuario puede elegir un modelo, modificar los parámetros, reproducir el movimiento y comparar la aproximación numérica con una solución analítica cuando existe.</p>
+  <p>La aplicación no representa solamente una pelota cayendo. El movimiento se modela en una dimensión, es decir, sobre una línea recta. Para los modelos con gravedad, esa línea se interpreta como la dirección vertical y la posición positiva apunta hacia abajo. Por eso el objeto comienza arriba y se desplaza hacia el suelo.</p>
+
+  <h2>3. Modelos matemáticos incluidos</h2>
+  <table>
+    <tr><th>Modelo</th><th>Aceleración</th><th>Interpretación</th></tr>
+    <tr><td>Resistencia cuadrática</td><td><code>a = −k₁ v²</code></td><td>Un cuerpo que ya se mueve y pierde velocidad por resistencia del aire.</td></tr>
+    <tr><td>Resistencia lineal</td><td><code>a = −k₂ v</code></td><td>Movimiento dominado por la viscosidad, especialmente a Reynolds pequeño.</td></tr>
+    <tr><td>Gravedad y resistencia cuadrática</td><td><code>a = g − k₁ v²</code></td><td>Caída vertical donde el arrastre aumenta con el cuadrado de la velocidad.</td></tr>
+    <tr><td>Gravedad y resistencia lineal</td><td><code>a = g − k₂ v</code></td><td>Caída vertical donde el arrastre es proporcional a la velocidad.</td></tr>
+  </table>
+  <p>En los modelos puramente resistivos, si <em>v₀ = 0</em>, el objeto permanece en reposo. Esto no es un error: la resistencia puede frenar un movimiento existente, pero no puede iniciar uno. Para visualizar esos modelos se puede introducir una velocidad inicial, por ejemplo 30 m/s.</p>
+
+  <h2>4. Soluciones analíticas de referencia</h2>
+  <h3>4.1. Resistencia cuadrática con gravedad</h3>
+  <p>Para un cuerpo que parte del reposo y toma positiva la dirección hacia abajo:</p>
+  <p class="formula"><strong>v(t) = √(g/k₁) tanh(√(gk₁)t)</strong></p>
+  <p class="formula"><strong>x(t) = x₀ + ln(cosh(√(gk₁)t))/k₁</strong></p>
+  <p>La velocidad terminal es <strong>v<sub>terminal</sub> = √(g/k₁)</strong>. La resistencia crece hasta equilibrar el peso y la aceleración se aproxima a cero.</p>
+
+  <h3>4.2. Resistencia lineal con gravedad</h3>
+  <p>Partiendo del reposo:</p>
+  <p class="formula"><strong>v(t) = (g/k₂)(1 − e<sup>−k₂t</sup>)</strong></p>
+  <p class="formula"><strong>x(t) = x₀ + (g/k₂)t − (g/k₂²)(1 − e<sup>−k₂t</sup>)</strong></p>
+  <p>En este caso la velocidad terminal es <strong>v<sub>terminal</sub> = g/k₂</strong>. El programa calcula estas expresiones y las dibuja junto a la solución obtenida mediante Euler.</p>
+
+  <h2>5. Cálculo de los coeficientes físicos</h2>
+  <p>En la interfaz, <em>k</em> se entiende como un coeficiente de resistencia del aire, no como el coeficiente de rozamiento entre dos superficies sólidas. Su unidad depende del modelo:</p>
+  <ul>
+    <li>Para resistencia cuadrática, <strong>k₁</strong> tiene unidades de 1/m.</li>
+    <li>Para resistencia lineal, <strong>k₂</strong> tiene unidades de 1/s.</li>
+  </ul>
+  <p>Para una esfera de diámetro <em>D</em>, masa <em>m</em>, densidad del aire <em>ρ</em>, viscosidad dinámica <em>μ</em> y coeficiente de arrastre <em>C<sub>A</sub></em>, el programa calcula:</p>
+  <p class="formula"><strong>k₁ = ρ C<sub>A</sub> πD²/(8m)</strong></p>
+  <p class="formula"><strong>k₂ = 3πDμ/m</strong></p>
+  <p>La masa aparece porque el enunciado describe una aceleración. Primero se obtiene una fuerza de arrastre y después se divide por la masa usando la segunda ley de Newton.</p>
+
+  <h2>6. Número de Reynolds y régimen del flujo</h2>
+  <p>EulerLab calcula el número de Reynolds local con:</p>
+  <p class="formula"><strong>Re = vDρ/μ</strong></p>
+  <p>Este número compara los efectos inerciales con los efectos viscosos:</p>
+  <ul>
+    <li><strong>Re &lt; 1:</strong> se considera apropiado el modelo lineal.</li>
+    <li><strong>Re &gt; 1:</strong> los efectos inerciales hacen importante el modelo cuadrático.</li>
+  </ul>
+  <p>La aplicación incluye una gráfica educativa de <em>C<sub>A</sub></em> frente a <em>Re</em>. No pretende reemplazar datos experimentales completos: en una esfera real también influyen la rugosidad, la compresibilidad y el número de Mach.</p>
+
+  <h2>7. Modelo de reentrada Dragon</h2>
+  <p>El modo Dragon trata la cápsula como una esfera que desciende verticalmente sin paracaídas. El usuario puede especificar el diámetro, la masa, la altitud inicial, la temperatura atmosférica y las propiedades del aire.</p>
+  <p>La densidad cambia con la altura según la aproximación:</p>
+  <p class="formula"><strong>ρ(h) = ρ₀ exp(−m₀gh/(k<sub>B</sub>T))</strong></p>
+  <p>En cada paso de Euler, el programa:</p>
+  <ol>
+    <li>calcula la altura actual de la cápsula;</li>
+    <li>calcula la densidad local del aire;</li>
+    <li>calcula el número de Reynolds;</li>
+    <li>estima el coeficiente de arrastre de la esfera;</li>
+    <li>calcula la fuerza de arrastre y la aceleración;</li>
+    <li>actualiza la posición y la velocidad.</li>
+  </ol>
+  <p>Este caso no muestra una curva analítica porque la densidad depende de la posición y, por tanto, la ecuación deja de tener la forma constante sencilla de los cuatro primeros modelos.</p>
+
+  <h2>8. Funcionamiento de la animación</h2>
+  <p>La física y la animación están separadas. Primero se calcula toda la trayectoria con Euler usando el valor de <em>Δt</em>. Después, durante la reproducción, un reloj de animación recorre esos datos sin modificar la simulación.</p>
+  <p>El tiempo de simulación avanza mediante <code>requestAnimationFrame</code>. La posición que se muestra se obtiene interpolando entre dos pasos consecutivos para evitar saltos visuales. Una flecha naranja indica la dirección y la magnitud relativa de la velocidad:</p>
+  <ul>
+    <li>en una caída, apunta hacia abajo;</li>
+    <li>en un movimiento horizontal, apunta en la dirección positiva;</li>
+    <li>su longitud aumenta cuando aumenta la velocidad.</li>
+  </ul>
+  <p>La velocidad de reproducción solo cambia la rapidez visual. No cambia los resultados numéricos calculados por Euler.</p>
+
+  <h2>9. Gráficas y medición del error</h2>
+  <p>La aplicación dibuja tres gráficas principales:</p>
+  <ul>
+    <li><strong>Posición frente a tiempo:</strong> permite observar el desplazamiento.</li>
+    <li><strong>Velocidad frente a tiempo:</strong> muestra la aceleración inicial y la velocidad terminal.</li>
+    <li><strong>Velocidad frente a posición:</strong> relaciona directamente el estado cinemático con el desplazamiento.</li>
+  </ul>
+  <p>Cuando existe una solución analítica, el programa calcula el error absoluto máximo:</p>
+  <p class="formula"><strong>error<sub>máximo</sub> = max |valor Euler − valor analítico|</strong></p>
+  <p>Al reducir <em>Δt</em>, normalmente disminuye el error para estos modelos suaves. En cambio, un paso demasiado grande puede producir una aproximación pobre o incluso inestable.</p>
+
+  <h2>10. Cómo usar la aplicación</h2>
+  <ol>
+    <li>Selecciona un modelo de resistencia.</li>
+    <li>Introduce <em>k</em>, <em>Δt</em>, la velocidad inicial y el tiempo total.</li>
+    <li>Para modelos físicos, ajusta diámetro, masa y propiedades del aire.</li>
+    <li>Pulsa <strong>Aplicar parámetros</strong>.</li>
+    <li>Usa <strong>Reproducir</strong>, <strong>Pausar</strong> y <strong>Reiniciar</strong>.</li>
+    <li>Observa la posición, velocidad, Reynolds, gráficas y errores.</li>
+  </ol>
+
+  <h2>11. Limitaciones</h2>
+  <p>El proyecto es una herramienta educativa. El modo Dragon no es una simulación aeroespacial completa: no incluye una atmósfera estándar detallada, variación real de temperatura, número de Mach, calentamiento aerodinámico, orientación de la cápsula, rotación terrestre ni despliegue del paracaídas.</p>
+  <p>Su objetivo es mostrar de forma clara cómo se aplica Euler a un problema de movimiento, cómo el arrastre modifica la trayectoria y cómo las propiedades del aire determinan el régimen físico.</p>
+
+  <p class="small">EulerLab · Documento generado para explicar el proyecto y su relación con el problema propuesto.</p>
+</body>
+</html>
