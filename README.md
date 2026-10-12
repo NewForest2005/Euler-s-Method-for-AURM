@@ -54,25 +54,25 @@ La aceleración se vuelve a calcular usando la nueva velocidad. Reducir `Δt` no
 
 ## Modelos disponibles
 
-### 1. Rozamiento cuadrático
+### 1. Resistencia cuadrática
 
 ```text
 a = −k₁ v²
 ```
 
-### 2. Rozamiento lineal
+### 2. Resistencia lineal
 
 ```text
 a = −k₂ v
 ```
 
-### 3. Gravedad y rozamiento cuadrático
+### 3. Gravedad y resistencia cuadrática
 
 ```text
 a = g − k₁ v²
 ```
 
-### 4. Gravedad y rozamiento lineal
+### 4. Gravedad y resistencia lineal
 
 ```text
 a = g − k₂ v

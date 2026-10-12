@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description"
     content="Simulación interactiva del método de Euler para el movimiento con resistencia aerodinámica.">
-  <title>MeNewLab — Movimiento con rozamiento</title>
+  <title>EulerLab — Movimiento con resistencia del aire</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -68,7 +68,7 @@
           </div>
           <span class="live-dot">● VIVO</span>
         </div>
-        <label class="field-label" for="modelSelect">Modelo de rozamiento</label>
+        <label class="field-label" for="modelSelect">Modelo de resistencia del aire</label>
         <select id="modelSelect">
           <option value="quadratic-gravity">Cuadrático + gravedad · a = g − kv²</option>
           <option value="linear-gravity">Lineal + gravedad · a = g − kv</option>
@@ -80,10 +80,10 @@
         </p>
         <div class="fields-two">
           <label>
-            <span>Coeficiente de rozamiento <b>k</b></span>
+            <span>Coeficiente de resistencia del aire <b>k</b></span>
             <div class="input-unit">
               <input id="kInput" type="number" min="0.001" max="2" step="0.001" value="0.08">
-              <i>1/m</i>
+              <i id="kUnit">según modelo</i>
             </div>
           </label>
           <label>

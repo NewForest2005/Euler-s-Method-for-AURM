@@ -20,7 +20,7 @@ const els = {
   mu: $("muInput"), ca: $("caInput"), atmoTemp: $("atmoTempInput"),
   altitude: $("altitudeInput"), physicalK1: $("physicalK1"), physicalK2: $("physicalK2"),
   re: $("reMetric"), dragChart: $("dragChart"), regimeValue: $("regimeValue"),
-  regimeText: $("regimeText"), analyticalLegend: $("analyticalLegend")
+  regimeText: $("regimeText"), analyticalLegend: $("analyticalLegend"), kUnit: $("kUnit")
 };
 
 let state = { config: null, data: null, currentTime: 0, running: false, lastFrame: 0 };
@@ -28,8 +28,8 @@ let state = { config: null, data: null, currentTime: 0, running: false, lastFram
 const descriptions = {
   "quadratic-gravity": "Caída vertical desde el reposo con resistencia del aire cuadrática.",
   "linear-gravity": "Caída vertical desde el reposo con resistencia del aire lineal.",
-  quadratic: "Lanzamiento horizontal frenado por rozamiento cuadrático.",
-  linear: "Lanzamiento horizontal frenado por rozamiento lineal.",
+  quadratic: "Lanzamiento horizontal frenado por resistencia cuadrática.",
+  linear: "Lanzamiento horizontal frenado por resistencia lineal.",
   dragon: "Reentrada vertical de Dragon con densidad atmosférica variable."
 };
 
@@ -117,7 +117,7 @@ function analytical(time, config) {
     };
   }
 
-  // Rozamiento cuadrático con gravedad, comenzando desde el reposo.
+  // Resistencia cuadrática con gravedad, comenzando desde el reposo.
   const q = Math.sqrt(g * k);
   return {
     x: Math.log(Math.cosh(q * time)) / k,
@@ -234,6 +234,16 @@ function updatePhysicalSummary(config) {
   els.physicalK2.textContent = coefficients.k2.toExponential(2);
 }
 
+function updateKUnit(model) {
+  if (model === "dragon") {
+    els.kUnit.textContent = "no usado";
+  } else if (model.includes("quadratic")) {
+    els.kUnit.textContent = "1/m";
+  } else {
+    els.kUnit.textContent = "1/s";
+  }
+}
+
 // Aplica los controles actuales y genera una simulación nueva.
 function apply() {
   try {
@@ -254,6 +264,7 @@ function apply() {
         : "Objeto desacelerando por la resistencia";
     els.status.textContent = "LISTO";
     els.analyticalLegend.style.display = isDragon(config) ? "none" : "inline";
+    updateKUnit(config.model);
     updatePhysicalSummary(config);
     updateMetrics();
     drawMotion();
@@ -327,7 +338,7 @@ function updateMetrics() {
     if (!state.config.model.includes("gravity") && state.config.v0 === 0) {
       els.insightTitle.textContent = "Reposo permanente en los casos 1 y 2";
       els.insightText.textContent =
-        "Con v₀ = 0 y sin gravedad, el rozamiento no puede iniciar el movimiento: x(t) y v(t) permanecen constantes.";
+        "Con v₀ = 0 y sin gravedad, la resistencia no puede iniciar el movimiento: x(t) y v(t) permanecen constantes.";
     }
   }
 
