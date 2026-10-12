@@ -1,48 +1,36 @@
-# EulerLab
+# MeNewLab
 
-Simulación interactiva del método de Euler aplicada al movimiento unidimensional con gravedad y resistencia del aire.
+Simulación interactiva del método de Euler aplicada al movimiento unidimensional (con restricciones a gravedad y resistencia del aire).
 
-La aplicación está construida únicamente con HTML, CSS y JavaScript. No necesita instalar librerías ni utilizar un sistema de construcción externo.
+La aplicación está construida únicamente con HTML, CSS y JavaScript.
 
-## Cómo ejecutar la aplicación
+### Uso
 
-### Opción rápida
-
-Abre `index.html` directamente en un navegador:
-
-```bash
-open index.html
-```
-
-También puedes hacer doble clic en el archivo desde Finder.
-
-### Usando el Makefile
-
-Para validar el JavaScript:
+Validar el JavaScript:
 
 ```bash
 make check
 ```
 
-Para abrir la aplicación en macOS:
+Abrir la aplicación (linux/MacOS):
 
 ```bash
 make open
 ```
 
-Para iniciar un servidor local:
+Inicializar un servidor local:
 
 ```bash
 make serve
 ```
 
-Después visita [http://localhost:8000](http://localhost:8000) en el navegador. El puerto se puede cambiar:
+Ir a [http://localhost:8000](http://localhost:8000) o en su defecto al puerto de uso:
 
 ```bash
 make serve PORT=8080
 ```
 
-## Estructura del proyecto
+## Estructura:
 
 ```text
 .
@@ -103,7 +91,7 @@ La aplicación permite introducir una velocidad inicial distinta de cero para es
 
 ## Gráficas
 
-La aplicación muestra:
+El ejecutable muestra:
 
 - posición frente al tiempo, (x(t));
 - velocidad frente al tiempo, (v(t));
@@ -125,7 +113,7 @@ La interpretación utilizada en la interfaz es:
 - `Re < 1`: régimen lineal, dominado por la viscosidad;
 - `Re > 1`: régimen cuadrático, dominado por efectos inerciales.
 
-Para una esfera, la aplicación usa una curva educativa aproximada de (C_A) en función de (Re). En un estudio de ingeniería real también habría que considerar rugosidad, compresibilidad, número de Mach y el régimen de flujo.
+Para una esfera, la aplicación usa una curva educativa aproximada de (C_A) en función de (Re). En un estudio mas formal, habría que considerar rugosidad, compresibilidad, número de Mach y el régimen de flujo.
 
 ## Parámetros físicos
 
@@ -146,7 +134,7 @@ El modo Dragon representa una cápsula esférica que desciende verticalmente des
 ρ(h) = ρ₀ exp(−m₀ g h / (kB T))
 ```
 
-En cada paso de Euler se actualizan:
+En cada paso de la implementacion de Euler se actualizan:
 
 1. la posición vertical;
 2. la altura restante;
@@ -160,7 +148,7 @@ El panel de régimen permite observar si la velocidad local es suficientemente p
 
 ## Limitaciones del modelo
 
-Este proyecto es una simulación educativa. El modo Dragon no representa una reentrada aeroespacial completa porque no incluye:
+El modo Dragon no representa una reentrada aeroespacial completa porque no incluye:
 
 - variación realista de temperatura con la altura;
 - velocidad del sonido y número de Mach;
@@ -172,6 +160,8 @@ Este proyecto es una simulación educativa. El modo Dragon no representa una ree
 - despliegue del paracaídas.
 
 Su objetivo es mostrar cómo una integración de Euler puede incorporar una densidad variable y cómo el régimen de arrastre depende de Reynolds.
+
+Como problema abierto a futuro de esta implementacion esta reconsiderar la situacion de Dragon a una escala industrial que soporte la reentrada aeroespacial completa.
 
 ## Verificación
 
