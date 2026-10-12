@@ -1,6 +1,6 @@
-// EulerLab — física, método numérico, gráficas y animación.
+// MeNewLab — física, método numérico, gráficas y animación.
 
-// Función auxiliar para seleccionar elementos de la página.
+// Función auxiliar para seleccionar elementos de la página (muchas gracias por esta funcion Claude :) ).
 const $ = (id) => document.getElementById(id);
 
 // Controles y elementos de display
@@ -344,7 +344,7 @@ function updateMetrics() {
   }
 }
 
-// Prepara un canvas de alta resolución para pantallas Retina.
+// Prepara un canvas para pantallas Retina.
 function setupCanvas(canvas) {
   const rectangle = canvas.getBoundingClientRect();
   const pixelRatio = window.devicePixelRatio || 1;
@@ -359,7 +359,7 @@ function range(valuesA, valuesB) {
   return [Math.min(...valuesA, ...valuesB), Math.max(...valuesA, ...valuesB)];
 }
 
-// Dibuja el objeto en movimiento y su trayectoria.
+// Render del objeto y sutrayectoria
 function drawMotion() {
   const { ctx, w, h } = setupCanvas(els.motion);
   const data = state.data;
@@ -542,7 +542,7 @@ function drawDragChart() {
   ctx.fillText("Re (escala log)", w - 88, h - 8);
 }
 
-// Bucle de animación. La velocidad solo cambia la reproducción.
+// Animacion de la simulacion.
 function animationFrame(now) {
   if (!state.running) return;
   if (!state.lastFrame) state.lastFrame = now;
@@ -561,7 +561,7 @@ function animationFrame(now) {
   }
 }
 
-// Interacciones del usuario.
+// Interfaz de Usuario.
 els.apply.addEventListener("click", apply);
 
 els.reset.addEventListener("click", () => {
