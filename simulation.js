@@ -10,7 +10,8 @@ const els = {
   play: $("playButton"), reset: $("resetButton"), speed: $("speedInput"),
   speedOut: $("speedOutput"), motion: $("motionCanvas"), title: $("motionTitle"),
   status: $("statusPill"), time: $("timeMetric"), position: $("positionMetric"),
-  velocity: $("velocityMetric"), error: $("errorMetric"), desc: $("modelDescription"),
+  velocity: $("velocityMetric"), acceleration: $("accelerationMetric"),
+  error: $("errorMetric"), desc: $("modelDescription"),
   err: $("errorMessage"), maxX: $("maxPositionError"), maxV: $("maxVelocityError"),
   insightTitle: $("insightTitle"), insightText: $("insightText"),
   positionChart: $("positionChart"),
@@ -20,16 +21,17 @@ const els = {
   mu: $("muInput"), ca: $("caInput"), atmoTemp: $("atmoTempInput"),
   altitude: $("altitudeInput"), physicalK1: $("physicalK1"), physicalK2: $("physicalK2"),
   re: $("reMetric"), dragChart: $("dragChart"), regimeValue: $("regimeValue"),
-  regimeText: $("regimeText"), analyticalLegend: $("analyticalLegend"), kUnit: $("kUnit")
+  regimeText: $("regimeText"), analyticalLegend: $("analyticalLegend"), kUnit: $("kUnit"),
+  bodyPreset: $("bodyPreset"), usePhysical: $("usePhysical")
 };
 
-let state = { config: null, data: null, currentTime: 0, running: false, lastFrame: 0 };
+let state = { config: null, data: null, currentTime: 0, running: false, lastFrame: null };
 
 const descriptions = {
   "quadratic-gravity": "Caída vertical desde el reposo con resistencia del aire cuadrática.",
   "linear-gravity": "Caída vertical desde el reposo con resistencia del aire lineal.",
-  quadratic: "Descenso vertical con velocidad inicial y resistencia cuadrática.",
-  linear: "Descenso vertical con velocidad inicial y resistencia lineal.",
+  quadratic: "Caso 1: sin gravedad. Con v₀ = 0, el objeto permanece en reposo.",
+  linear: "Caso 2: sin gravedad. Con v₀ = 0, el objeto permanece en reposo.",
   dragon: "Reentrada vertical de Dragon con densidad atmosférica variable."
 };
 
@@ -184,12 +186,10 @@ function readConfig() {
     mu: Number(els.mu.value),
     ca: Number(els.ca.value),
     atmoTemp: Number(els.atmoTemp.value),
-    altitude: Number(els.altitude.value)
+    altitude: Number(els.altitude.value),
+    usePhysical: els.usePhysical.checked
   };
 
-  if (!Number.isFinite(config.k) || config.k < 0.001 || config.k > 2) {
-    throw Error("El coeficiente k debe estar entre 0.001 y 2.");
-  }
   if (!Number.isFinite(config.dt) || config.dt < 0.001 || config.dt > 0.5) {
     throw Error("El paso de tiempo Δt debe estar entre 0.001 y 0.5 s.");
   }
@@ -226,6 +226,21 @@ function readConfig() {
   if (!Number.isFinite(config.altitude) || config.altitude < 0) {
     throw Error("La altitud inicial no puede ser negativa.");
   }
+
+  if (config.usePhysical || isDragon(config)) {
+    const coefficients = physicalCoefficients(config);
+    config.k = config.model.includes("quadratic") || isDragon(config)
+      ? coefficients.k1
+      : coefficients.k2;
+  } else if (!Number.isFinite(config.k) || config.k < 0.001 || config.k > 2) {
+    throw Error("El coeficiente k debe estar entre 0.001 y 2.");
+  }
+
+  if (config.model === "quadratic" && config.k * config.v0 * config.dt >= 1) {
+    throw Error(
+      "Para que Euler no invierta artificialmente el movimiento en el modelo cuadrático, reduce Δt hasta que k · v₀ · Δt sea menor que 1."
+    );
+  }
   return config;
 }
 
@@ -235,13 +250,63 @@ function updatePhysicalSummary(config) {
   els.physicalK2.textContent = coefficients.k2.toExponential(2);
 }
 
-function updateKUnit(model) {
-  if (model === "dragon") {
+const bodyPresets = {
+  football: {
+    model: "quadratic-gravity",
+    v0: 0,
+    diameter: 0.22,
+    mass: 0.43,
+    rho0: 1.225,
+    mu: 0.0000181,
+    ca: 0.5,
+    altitude: 100
+  },
+  pollen: {
+    model: "linear-gravity",
+    v0: 0,
+    diameter: 0.0001,
+    mass: 5.24e-10,
+    rho0: 1.225,
+    mu: 0.0000181,
+    ca: 0.5,
+    altitude: 10
+  },
+  dragon: {
+    model: "dragon",
+    diameter: 4,
+    mass: 9500,
+    rho0: 1.225,
+    mu: 0.0000181,
+    ca: 0.5,
+    altitude: 80000
+  }
+};
+
+function applyBodyPreset(name) {
+  const preset = bodyPresets[name];
+  if (!preset) return;
+
+  els.model.value = preset.model;
+  els.diameter.value = preset.diameter;
+  els.mass.value = preset.mass;
+  els.rho.value = preset.rho0;
+  els.mu.value = preset.mu;
+  els.ca.value = preset.ca;
+  els.altitude.value = preset.altitude;
+  els.v0.value = preset.v0 ?? 0;
+  els.usePhysical.checked = true;
+  apply();
+}
+
+function updateKUnit(config) {
+  if (config.model === "dragon") {
     els.kUnit.textContent = "no usado";
-  } else if (model.includes("quadratic")) {
-    els.kUnit.textContent = "1/m";
+  } else if (config.usePhysical) {
+    els.kUnit.textContent = config.model.includes("quadratic") ? "físico 1/m" : "físico 1/s";
+  } else if (config.model.includes("quadratic")) {
+    els.kUnit.textContent = "manual 1/m";
   } else {
-    els.kUnit.textContent = "1/s";
+    els.kUnit.textContent = "manual 1/s";
   }
 }
 
@@ -254,7 +319,7 @@ function apply() {
       data: simulate(config),
       currentTime: 0,
       running: false,
-      lastFrame: 0
+      lastFrame: null
     };
     els.err.textContent = "";
     els.desc.textContent = descriptions[config.model];
@@ -265,7 +330,10 @@ function apply() {
       : "Objeto descendiendo y desacelerando";
     els.status.textContent = "LISTO";
     els.analyticalLegend.style.display = isDragon(config) ? "none" : "inline";
-    updateKUnit(config.model);
+    updateKUnit(config);
+    if (config.usePhysical || isDragon(config)) {
+      els.k.value = config.k.toPrecision(5);
+    }
     updatePhysicalSummary(config);
     updateMetrics();
     drawMotion();
@@ -319,6 +387,8 @@ function updateMetrics() {
   els.time.innerHTML = `${data.t[index].toFixed(2)} <small>s</small>`;
   els.position.innerHTML = `${frame.position.toFixed(2)} <small>m</small>`;
   els.velocity.innerHTML = `${frame.velocity.toFixed(2)} <small>m/s</small>`;
+  const downwardAcceleration = -acceleration(frame.position, frame.velocity, state.config);
+  els.acceleration.innerHTML = `${downwardAcceleration.toFixed(2)} <small>m/s²</small>`;
   if (state.config.model === "dragon") {
     els.error.innerHTML = "No disponible";
     els.maxX.textContent = "No disponible";
@@ -340,6 +410,14 @@ function updateMetrics() {
       els.insightTitle.textContent = "Reposo permanente en los casos 1 y 2";
       els.insightText.textContent =
         "Con v₀ = 0 y sin gravedad, la resistencia no puede iniciar el movimiento: x(t) y v(t) permanecen constantes.";
+    } else if (state.config.model.includes("gravity")) {
+      const terminalSpeed = state.config.model.includes("quadratic")
+        ? Math.sqrt(state.config.g / state.config.k)
+        : state.config.g / state.config.k;
+      els.insightTitle.textContent = "La caída se aproxima a una velocidad terminal";
+      els.insightText.textContent =
+        `Parte del reposo: la gravedad acelera hacia abajo y el arrastre reduce la aceleración neta conforme aumenta la velocidad. ` +
+        `Velocidad terminal estimada: ${terminalSpeed.toFixed(2)} m/s.`;
     }
   }
 
@@ -469,7 +547,11 @@ function drawChart(canvas, values, exactValues, phaseChart = false, exactXValues
   const xValues = phaseChart ? state.data.x : state.data.t;
   const yValues = phaseChart ? state.data.v : values;
   const [minY, maxY] = range(yValues, exactValues || []);
-  const maxX = Math.max(...xValues, 1);
+  const allXValues = phaseChart && exactXValues
+    ? [...xValues, ...exactXValues]
+    : xValues;
+  const [minX, maxX] = range(allXValues, []);
+  const xRange = maxX - minX || 1;
   const yRange = maxY - minY || 1;
   ctx.clearRect(0, 0, w, h);
   ctx.font = "9px DM Mono";
@@ -486,7 +568,7 @@ function drawChart(canvas, values, exactValues, phaseChart = false, exactXValues
     ctx.stroke();
     ctx.fillText((maxY - (yRange * row) / 3).toFixed(1), 3, y + 3);
   }
-  ctx.fillText("0", padding.left - 3, h - 7);
+  ctx.fillText(minX.toFixed(1), padding.left - 3, h - 7);
   ctx.fillText(maxX.toFixed(1), w - 28, h - 7);
 
   function drawLine(lineValues, color, dashed, lineXValues = xValues) {
@@ -495,7 +577,7 @@ function drawChart(canvas, values, exactValues, phaseChart = false, exactXValues
     ctx.setLineDash(dashed ? [4, 4] : []);
     ctx.beginPath();
     lineValues.forEach((value, index) => {
-      const x = padding.left + (lineXValues[index] / maxX) * plotWidth;
+      const x = padding.left + ((lineXValues[index] - minX) / xRange) * plotWidth;
       const y = padding.top + ((maxY - value) / yRange) * plotHeight;
       if (index === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
@@ -559,8 +641,15 @@ function drawDragChart() {
 // Animacion de la simulacion.
 function animationFrame(now) {
   if (!state.running) return;
-  if (!state.lastFrame) state.lastFrame = now;
-  const elapsed = (now - state.lastFrame) / 1000;
+  if (state.lastFrame === null) {
+    state.lastFrame = now;
+    updateMetrics();
+    drawMotion();
+    requestAnimationFrame(animationFrame);
+    return;
+  }
+
+  const elapsed = Math.max(0, (now - state.lastFrame) / 1000);
   state.lastFrame = now;
   state.currentTime = Math.min(state.config.T, state.currentTime + elapsed * Number(els.speed.value));
   updateMetrics();
@@ -597,7 +686,7 @@ els.apply.addEventListener("click", apply);
 els.reset.addEventListener("click", () => {
   state.currentTime = 0;
   state.running = false;
-  state.lastFrame = 0;
+  state.lastFrame = null;
   els.play.innerHTML = "▶ <span>Reproducir</span>";
   els.status.textContent = "LISTO";
   updateMetrics();
@@ -610,7 +699,7 @@ els.play.addEventListener("click", () => {
   els.play.innerHTML = state.running ? "Ⅱ <span>Pausar</span>" : "▶ <span>Reproducir</span>";
   els.status.textContent = state.running ? "EJECUTANDO" : "PAUSADO";
   if (state.running) {
-    state.lastFrame = 0;
+    state.lastFrame = null;
     requestAnimationFrame(animationFrame);
   }
 });
@@ -625,6 +714,12 @@ els.model.addEventListener("change", () => {
   apply();
 });
 
+els.bodyPreset.addEventListener("change", () => {
+  applyBodyPreset(els.bodyPreset.value);
+});
+
+els.usePhysical.addEventListener("change", apply);
+
 window.addEventListener("resize", () => {
   if (state.data) {
     drawMotion();
@@ -634,4 +729,4 @@ window.addEventListener("resize", () => {
 });
 
 // Inicia la aplicación con los parámetros predeterminados.
-apply();
+applyBodyPreset(els.bodyPreset.value);

@@ -126,6 +126,12 @@ k₂ = 3πDμ / m
 
 La división entre la masa es necesaria porque la aplicación trabaja con aceleración y no directamente con fuerza.
 
+La interfaz incluye presets para un balón de fútbol, un grano de polen y la cápsula Dragon. El balón usa el caso (3), resistencia cuadrática más gravedad, y el polen usa el caso (4), resistencia lineal más gravedad; ambos parten del reposo. En estos casos, la rapidez aumenta mientras la aceleración neta hacia abajo disminuye al acercarse a la velocidad terminal. La lectura “Aceleración vertical (↓ +)” usa positivo hacia abajo, como las ecuaciones de la guía.
+
+Los modelos sin gravedad no representan una caída desde el reposo. En los casos (1) y (2), con (v_0=0), la pelota permanece quieta; con una velocidad inicial descendente distinta de cero, el arrastre la frena. Esto conserva las ecuaciones de la guía y evita añadir gravedad de manera implícita.
+
+Al activar “Usar coeficiente calculado físicamente”, el programa selecciona (k_1) o (k_2) según el modelo elegido. De esta forma, la comparación entre el balón y el polen no utiliza artificialmente el mismo valor de (k).
+
 ## Modelo Dragon
 
 El modo Dragon representa una cápsula esférica que desciende verticalmente desde una altura inicial. La densidad atmosférica se aproxima mediante:
