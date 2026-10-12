@@ -69,13 +69,13 @@ function physicalCoefficients(config, density = config.rho0) {
 }
 
 function dragonPhysics(position, velocity, config) {
-  const altitude = config.altitude - position;
+  const altitude = config.altitude + position;
   const density = atmosphericDensity(altitude, config);
   const reynolds = Math.abs(velocity) * config.diameter * density / config.mu;
   const dragCoefficient = dragCoefficientFromRe(reynolds);
   const { area, k1 } = physicalCoefficients(config, density);
   return {
-    acceleration: config.g - k1 * velocity * Math.abs(velocity),
+    acceleration: -config.g - k1 * velocity * Math.abs(velocity),
     altitude,
     density,
     reynolds,
@@ -91,37 +91,38 @@ function acceleration(position, velocity, config) {
   const drag = config.model.includes("quadratic")
     ? config.k * velocity * Math.abs(velocity)
     : config.k * velocity;
-  return config.model.includes("gravity") ? config.g - drag : -drag;
+  return config.model.includes("gravity") ? -config.g - drag : -drag;
 }
 
 // Soluciones analíticas para comparar la aproximación de Euler.
 function analytical(time, config) {
-  const { k, g, v0 } = config;
+  const { k, g } = config;
+  const downwardSpeed = config.v0;
 
   if (config.model === "linear") {
     return {
-      x: (v0 * (1 - Math.exp(-k * time))) / k,
-      v: v0 * Math.exp(-k * time)
+      x: -(downwardSpeed * (1 - Math.exp(-k * time))) / k,
+      v: -downwardSpeed * Math.exp(-k * time)
     };
   }
   if (config.model === "quadratic") {
     return {
-      x: Math.log(1 + k * v0 * time) / k,
-      v: v0 / (1 + k * v0 * time)
+      x: -Math.log(1 + k * downwardSpeed * time) / k,
+      v: -downwardSpeed / (1 + k * downwardSpeed * time)
     };
   }
   if (config.model === "linear-gravity") {
     return {
-      x: (g * time) / k - (g * (1 - Math.exp(-k * time))) / (k * k),
-      v: (g * (1 - Math.exp(-k * time))) / k
+      x: -(g * time) / k + (g * (1 - Math.exp(-k * time))) / (k * k),
+      v: -(g * (1 - Math.exp(-k * time))) / k
     };
   }
 
   // Resistencia cuadrática con gravedad, comenzando desde el reposo.
   const q = Math.sqrt(g * k);
   return {
-    x: Math.log(Math.cosh(q * time)) / k,
-    v: Math.sqrt(g / k) * Math.tanh(q * time)
+    x: -Math.log(Math.cosh(q * time)) / k,
+    v: -Math.sqrt(g / k) * Math.tanh(q * time)
   };
 }
 
@@ -129,7 +130,7 @@ function analytical(time, config) {
 function simulate(config) {
   const times = [0];
   const positions = [0];
-  const velocities = [isDragon(config) || !config.model.includes("gravity") ? config.v0 : 0];
+  const velocities = [isDragon(config) || !config.model.includes("gravity") ? -config.v0 : 0];
   const analyticalPositions = isDragon(config) ? null : [0];
   const analyticalVelocities = isDragon(config) ? null : [velocities[0]];
   const densities = isDragon(config) ? [atmosphericDensity(config.altitude, config)] : null;
@@ -377,7 +378,7 @@ function drawMotion() {
   const config = state.config;
   const index = currentIndex();
   const frame = currentState();
-  const maxPosition = Math.max(...data.x, 1);
+  const maxDisplacement = Math.max(...data.x.map((position) => Math.abs(position)), 1);
   const ground = h - 43;
   // Todos los modelos se visualizan sobre el mismo eje vertical.
   // En los modelos sin gravedad, v₀ = 0 produce reposo permanente.
@@ -393,7 +394,7 @@ function drawMotion() {
   ctx.fillStyle = "#9db3ad";
   ctx.font = "10px DM Mono";
   ctx.fillText(vertical ? "suelo" : "inicio", 30, ground + 22);
-  ctx.fillText(`${maxPosition.toFixed(1)} m`, w - 63, ground + 22);
+  ctx.fillText(`${maxDisplacement.toFixed(1)} m`, w - 63, ground + 22);
 
   // Trayectoria punteada.
   ctx.strokeStyle = "#b9ddd4";
@@ -402,11 +403,11 @@ function drawMotion() {
   const skip = Math.max(1, Math.floor(data.x.length / 80));
   for (let n = 0; n < data.x.length; n += skip) {
     if (vertical) {
-      const y = 30 + (data.x[n] / maxPosition) * (ground - 30);
+      const y = 30 + (-data.x[n] / maxDisplacement) * (ground - 30);
       if (n === 0) ctx.moveTo(w / 2, y);
       else ctx.lineTo(w / 2, y);
     } else {
-      const x = 30 + (data.x[n] / maxPosition) * (w - 60);
+      const x = 30 + (-data.x[n] / maxDisplacement) * (w - 60);
       if (n === 0) ctx.moveTo(x, ground);
       else ctx.lineTo(x, ground);
     }
@@ -415,7 +416,7 @@ function drawMotion() {
   ctx.setLineDash([]);
 
   // Posición actual del objeto.
-  const positionRatio = frame.position / maxPosition;
+  const positionRatio = -frame.position / maxDisplacement;
   const objectX = vertical ? w / 2 : 30 + positionRatio * (w - 60);
   const objectY = vertical ? 30 + positionRatio * (ground - 30) : ground;
   ctx.fillStyle = "#159b88";
@@ -431,7 +432,7 @@ function drawMotion() {
   const arrowLength = Math.min(54, Math.abs(frame.velocity) * 2.2);
   const direction = frame.velocity >= 0 ? 1 : -1;
   const arrowX = vertical ? objectX : objectX + direction * arrowLength;
-  const arrowY = vertical ? objectY + direction * arrowLength : objectY;
+  const arrowY = vertical ? objectY - direction * arrowLength : objectY;
   ctx.strokeStyle = "#f3835a";
   ctx.fillStyle = "#f3835a";
   ctx.lineWidth = 2;
@@ -442,8 +443,8 @@ function drawMotion() {
   ctx.beginPath();
   if (vertical) {
     ctx.moveTo(arrowX, arrowY);
-    ctx.lineTo(arrowX - 4, arrowY - direction * 8);
-    ctx.lineTo(arrowX + 4, arrowY - direction * 8);
+    ctx.lineTo(arrowX - 4, arrowY + direction * 8);
+    ctx.lineTo(arrowX + 4, arrowY + direction * 8);
   } else {
     ctx.moveTo(arrowX, arrowY);
     ctx.lineTo(arrowX - direction * 8, arrowY - 4);
@@ -576,6 +577,22 @@ function animationFrame(now) {
 
 // Interfaz de Usuario.
 els.apply.addEventListener("click", apply);
+
+// Al terminar de editar un parámetro, actualiza la simulación automáticamente.
+[
+  els.k,
+  els.dt,
+  els.v0,
+  els.T,
+  els.g,
+  els.diameter,
+  els.mass,
+  els.rho,
+  els.mu,
+  els.ca,
+  els.atmoTemp,
+  els.altitude
+].forEach((input) => input.addEventListener("change", apply));
 
 els.reset.addEventListener("click", () => {
   state.currentTime = 0;
