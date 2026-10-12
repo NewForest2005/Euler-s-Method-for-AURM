@@ -87,7 +87,7 @@ v(t) = 0
 x(t) = x₀
 ```
 
-La aplicación permite introducir una velocidad inicial distinta de cero para estudiar también el movimiento de frenado.
+Todos los modelos se visualizan sobre un eje vertical con sentido positivo hacia abajo. La aplicación permite introducir una velocidad inicial descendente distinta de cero para estudiar también el movimiento de frenado. Si se usa (v_0=0) en los modelos (1) y (2), la pelota permanece arriba porque la resistencia no puede iniciar el movimiento.
 
 ## Gráficas
 

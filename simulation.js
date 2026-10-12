@@ -28,8 +28,8 @@ let state = { config: null, data: null, currentTime: 0, running: false, lastFram
 const descriptions = {
   "quadratic-gravity": "Caída vertical desde el reposo con resistencia del aire cuadrática.",
   "linear-gravity": "Caída vertical desde el reposo con resistencia del aire lineal.",
-  quadratic: "Lanzamiento horizontal frenado por resistencia cuadrática.",
-  linear: "Lanzamiento horizontal frenado por resistencia lineal.",
+  quadratic: "Descenso vertical con velocidad inicial y resistencia cuadrática.",
+  linear: "Descenso vertical con velocidad inicial y resistencia lineal.",
   dragon: "Reentrada vertical de Dragon con densidad atmosférica variable."
 };
 
@@ -261,7 +261,7 @@ function apply() {
       ? "Objeto en caída libre"
       : config.model === "dragon"
         ? "Reentrada vertical de Dragon"
-        : "Objeto desacelerando por la resistencia";
+      : "Objeto descendiendo y desacelerando";
     els.status.textContent = "LISTO";
     els.analyticalLegend.style.display = isDragon(config) ? "none" : "inline";
     updateKUnit(config.model);
@@ -379,7 +379,9 @@ function drawMotion() {
   const frame = currentState();
   const maxPosition = Math.max(...data.x, 1);
   const ground = h - 43;
-  const vertical = config.model.includes("gravity") || isDragon(config);
+  // Todos los modelos se visualizan sobre el mismo eje vertical.
+  // En los modelos sin gravedad, v₀ = 0 produce reposo permanente.
+  const vertical = true;
   ctx.clearRect(0, 0, w, h);
 
   ctx.strokeStyle = "#d9e8e3";
