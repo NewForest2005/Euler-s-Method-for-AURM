@@ -21,7 +21,7 @@ make open
 Inicializar un servidor local:
 
 ```bash
-make serve
+make run
 ```
 
 Ir a [http://localhost:8000](http://localhost:8000) o en su defecto al puerto de uso:

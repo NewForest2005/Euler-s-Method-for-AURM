@@ -3,12 +3,13 @@
 PORT ?= 8000
 PYTHON ?= python3
 
-.PHONY: help check open serve
+.PHONY: help check open serve run
 
 help:
 	@echo "Comandos disponibles:"
 	@echo "  make check       Verifica la sintaxis y los archivos principales"
 	@echo "  make open        Abre index.html en macOS"
+	@echo "  make run         Inicia la aplicación en http://localhost:$(PORT)"
 	@echo "  make serve       Inicia un servidor local en el puerto $(PORT)"
 	@echo "  make serve PORT=8080  Inicia el servidor en otro puerto"
 
@@ -24,3 +25,5 @@ open:
 
 serve:
 	@$(PYTHON) -m http.server $(PORT)
+
+run: serve

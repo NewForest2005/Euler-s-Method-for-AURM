@@ -276,16 +276,37 @@ function currentIndex() {
   return index;
 }
 
+// Interpola entre dos pasos para que la animación sea visualmente continua.
+function currentState() {
+  const data = state.data;
+  const index = currentIndex();
+
+  if (index >= data.t.length - 1) {
+    return { position: data.x[index], velocity: data.v[index] };
+  }
+
+  const duration = data.t[index + 1] - data.t[index];
+  const fraction = duration > 0
+    ? (state.currentTime - data.t[index]) / duration
+    : 0;
+
+  return {
+    position: data.x[index] + fraction * (data.x[index + 1] - data.x[index]),
+    velocity: data.v[index] + fraction * (data.v[index + 1] - data.v[index])
+  };
+}
+
 // Actualizar los valores mostrados en la parte posterior del canvas de movimiento.
 function updateMetrics() {
   if (!state.data) return;
   const data = state.data;
   const index = currentIndex();
+  const frame = currentState();
   const positionError = maxError(data.x, data.analX);
   const velocityError = maxError(data.v, data.analV);
   els.time.innerHTML = `${data.t[index].toFixed(2)} <small>s</small>`;
-  els.position.innerHTML = `${data.x[index].toFixed(2)} <small>m</small>`;
-  els.velocity.innerHTML = `${data.v[index].toFixed(2)} <small>m/s</small>`;
+  els.position.innerHTML = `${frame.position.toFixed(2)} <small>m</small>`;
+  els.velocity.innerHTML = `${frame.velocity.toFixed(2)} <small>m/s</small>`;
   if (state.config.model === "dragon") {
     els.error.innerHTML = "No disponible";
     els.maxX.textContent = "No disponible";
@@ -344,6 +365,7 @@ function drawMotion() {
   const data = state.data;
   const config = state.config;
   const index = currentIndex();
+  const frame = currentState();
   const maxPosition = Math.max(...data.x, 1);
   const ground = h - 43;
   const vertical = config.model.includes("gravity") || isDragon(config);
@@ -367,20 +389,22 @@ function drawMotion() {
   const skip = Math.max(1, Math.floor(data.x.length / 80));
   for (let n = 0; n < data.x.length; n += skip) {
     if (vertical) {
-      const y = ground - (data.x[n] / maxPosition) * (ground - 30);
-      ctx.lineTo(w / 2, y);
+      const y = 30 + (data.x[n] / maxPosition) * (ground - 30);
+      if (n === 0) ctx.moveTo(w / 2, y);
+      else ctx.lineTo(w / 2, y);
     } else {
       const x = 30 + (data.x[n] / maxPosition) * (w - 60);
-      ctx.lineTo(x, ground);
+      if (n === 0) ctx.moveTo(x, ground);
+      else ctx.lineTo(x, ground);
     }
   }
   ctx.stroke();
   ctx.setLineDash([]);
 
   // Posición actual del objeto.
-  const positionRatio = data.x[index] / maxPosition;
+  const positionRatio = frame.position / maxPosition;
   const objectX = vertical ? w / 2 : 30 + positionRatio * (w - 60);
-  const objectY = vertical ? ground - positionRatio * (ground - 30) : ground;
+  const objectY = vertical ? 30 + positionRatio * (ground - 30) : ground;
   ctx.fillStyle = "#159b88";
   ctx.beginPath();
   ctx.arc(objectX, objectY, 9, 0, Math.PI * 2);
@@ -388,6 +412,31 @@ function drawMotion() {
   ctx.fillStyle = "#fff";
   ctx.beginPath();
   ctx.arc(objectX - 3, objectY - 3, 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Flecha que muestra la dirección y magnitud de la velocidad.
+  const arrowLength = Math.min(54, Math.abs(frame.velocity) * 2.2);
+  const direction = frame.velocity >= 0 ? 1 : -1;
+  const arrowX = vertical ? objectX : objectX + direction * arrowLength;
+  const arrowY = vertical ? objectY + direction * arrowLength : objectY;
+  ctx.strokeStyle = "#f3835a";
+  ctx.fillStyle = "#f3835a";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(objectX, objectY);
+  ctx.lineTo(arrowX, arrowY);
+  ctx.stroke();
+  ctx.beginPath();
+  if (vertical) {
+    ctx.moveTo(arrowX, arrowY);
+    ctx.lineTo(arrowX - 4, arrowY - direction * 8);
+    ctx.lineTo(arrowX + 4, arrowY - direction * 8);
+  } else {
+    ctx.moveTo(arrowX, arrowY);
+    ctx.lineTo(arrowX - direction * 8, arrowY - 4);
+    ctx.lineTo(arrowX - direction * 8, arrowY + 4);
+  }
+  ctx.closePath();
   ctx.fill();
 }
 
@@ -543,6 +592,7 @@ els.speed.addEventListener("input", () => {
 els.model.addEventListener("change", () => {
   els.desc.textContent = descriptions[els.model.value];
   if (els.model.value.includes("gravity")) els.v0.value = 0;
+  apply();
 });
 
 window.addEventListener("resize", () => {
