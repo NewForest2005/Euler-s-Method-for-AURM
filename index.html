@@ -47,7 +47,6 @@
           <div><span>TIEMPO</span><strong id="timeMetric">0.00 <small>s</small></strong></div>
           <div><span>POSICION</span><strong id="positionMetric">0.00 <small>m</small></strong></div>
           <div><span>VELOCIDAD</span><strong id="velocityMetric">0.00 <small>m/s</small></strong></div>
-          <div><span>ACEL. VERTICAL (↓ +)</span><strong id="accelerationMetric">0.00 <small>m/s²</small></strong></div>
           <div><span>ERROR</span><strong id="errorMetric">0.000 <small>m</small></strong></div>
         </div>
         <div class="transport">
@@ -71,31 +70,20 @@
         </div>
         <label class="field-label" for="modelSelect">Modelo de rozamiento</label>
         <select id="modelSelect">
-          <option value="quadratic">Caso 1 · Solo resistencia cuadrática · a = −kv²</option>
-          <option value="linear">Caso 2 · Solo resistencia lineal · a = −kv</option>
-          <option value="quadratic-gravity">Caso 3 · Cuadrático + gravedad · a = g − kv²</option>
-          <option value="linear-gravity">Caso 4 · Lineal + gravedad · a = g − kv</option>
+          <option value="quadratic-gravity">Cuadrático + gravedad · a = g − kv²</option>
+          <option value="linear-gravity">Lineal + gravedad · a = g − kv</option>
+          <option value="quadratic">Cuadrático solamente · a = −kv²</option>
+          <option value="linear">Lineal solamente · a = −kv</option>
           <option value="dragon">Dragon · atmósfera variable</option>
         </select>
         <p id="modelDescription" class="field-help">Caída vertical desde el reposo con resistencia del aire cuadrática.
         </p>
-        <label class="field-label" for="bodyPreset">Cuerpo de referencia</label>
-        <select id="bodyPreset">
-          <option value="football">Balón de fútbol</option>
-          <option value="pollen">Grano de polen</option>
-          <option value="dragon">Cápsula Dragon</option>
-          <option value="custom">Parámetros personalizados</option>
-        </select>
-        <label class="physical-toggle">
-          <input id="usePhysical" type="checkbox" checked>
-          Usar coeficiente calculado físicamente
-        </label>
         <div class="fields-two">
           <label>
-            <span>Coeficiente de resistencia del aire <b>k</b></span>
+            <span>Coeficiente de rozamiento <b>k</b></span>
             <div class="input-unit">
-              <input id="kInput" type="number" min="0.001" max="1000000" step="any" value="0.08">
-              <i id="kUnit">según modelo</i>
+              <input id="kInput" type="number" min="0.001" max="2" step="0.001" value="0.08">
+              <i>1/m</i>
             </div>
           </label>
           <label>
@@ -132,14 +120,14 @@
           <label>
             <span>Diámetro <b>D</b></span>
             <div class="input-unit">
-              <input id="diameterInput" type="number" min="0.000001" max="100" step="any" value="0.22">
+              <input id="diameterInput" type="number" min="0.001" max="100" step="0.01" value="4">
               <i>m</i>
             </div>
           </label>
           <label>
             <span>Masa <b>m</b></span>
             <div class="input-unit">
-              <input id="massInput" type="number" min="0.000000000001" max="1000000" step="any" value="0.43">
+              <input id="massInput" type="number" min="0.001" max="1000000" step="1" value="9500">
               <i>kg</i>
             </div>
           </label>
@@ -176,9 +164,9 @@
             </div>
           </label>
         </div>
-        <label class="field-label" for="altitudeInput">Altitud inicial <b>h₀</b></label>
+        <label class="field-label" for="altitudeInput">Altitud inicial de Dragon <b>h₀</b></label>
         <div class="input-unit full">
-          <input id="altitudeInput" type="number" min="0" max="200000" step="100" value="100">
+          <input id="altitudeInput" type="number" min="0" max="200000" step="100" value="80000">
           <i>m</i>
         </div>
         <div class="physical-output">
