@@ -170,6 +170,34 @@
   <p class="formula"><strong>k₂ = 3πDμ/m</strong></p>
   <p>La masa aparece porque el enunciado describe una aceleración. Primero se obtiene una fuerza de arrastre y después
     se divide por la masa usando la segunda ley de Newton.</p>
+  <p>Estas expresiones se obtienen de dos leyes estándar de la mecánica de fluidos:</p>
+  <ul>
+    <li>
+      <strong>Arrastre cuadrático:</strong> la ecuación aerodinámica estándar es
+      <span class="formula">F<sub>D</sub> = ½ρC<sub>D</sub>Av²</span>. Al dividir entre la masa,
+      <span class="formula">a = [ρC<sub>D</sub>A/(2m)]v²</span>, por lo que
+      <span class="formula">k₁ = ρC<sub>D</sub>A/(2m)</span>. Para una esfera,
+      <span class="formula">A = πD²/4</span>, y se obtiene
+      <span class="formula">k₁ = ρC<sub>D</sub>πD²/(8m)</span>.
+      Véase
+      <a href="https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/drag-of-a-sphere/" target="_blank" rel="noopener noreferrer">
+        Drag of a Sphere, NASA Glenn Research Center</a>.
+    </li>
+    <li>
+      <strong>Arrastre lineal:</strong> para números de Reynolds muy pequeños, la ley de Stokes para una esfera es
+      <span class="formula">F<sub>D</sub> = 6πμrv</span>. Como
+      <span class="formula">r = D/2</span>, resulta
+      <span class="formula">F<sub>D</sub> = 3πμDv</span>. Al dividir entre la masa,
+      <span class="formula">k₂ = 3πμD/m</span>.
+      Véase
+      <a href="https://ocw.mit.edu/courses/12-090-introduction-to-fluid-motions-sediment-transport-and-current-generated-sedimentary-structures-fall-2006/7841d9b1681d6748fa2f5cbc6d6f1cb2_ch3.pdf" target="_blank" rel="noopener noreferrer">
+        Stokes' law, MIT OpenCourseWare</a>.
+    </li>
+  </ul>
+  <p>Por tanto, los coeficientes usados por la aplicación no son fórmulas independientes: se obtienen al convertir las
+    fuerzas de arrastre en aceleraciones mediante <strong>a = F/m</strong>. El valor de <em>C<sub>A</sub></em> puede
+    depender del régimen de flujo; la curva por tramos usada en el modelo Dragon es una aproximación educativa del
+    proyecto, no una ley universal exacta.</p>
 
   <h2>6. Número de Reynolds y régimen del flujo</h2>
   <p>EulerLab calcula el número de Reynolds local con:</p>

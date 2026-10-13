@@ -27,3 +27,30 @@ serve:
 	@$(PYTHON) -m http.server $(PORT)
 
 run: serve
+
+# -----------------------------------------------------------------------------
+# Equivalentes comentados para Linux y Windows
+#
+# Linux (Makefile):
+# PYTHON ?= python3
+#
+# open:
+#	@xdg-open index.html
+#
+# serve:
+#	@$(PYTHON) -m http.server $(PORT)
+#
+# Windows PowerShell (Makefile):
+# PYTHON ?= py
+#
+# open:
+#	@Start-Process index.html
+#
+# serve:
+#	@$(PYTHON) -m http.server $(PORT)
+#
+# Si no se utiliza make en Windows, los comandos equivalentes son:
+#   node --check simulation.js
+#   py -m http.server 8000
+#   Start-Process index.html
+# -----------------------------------------------------------------------------
