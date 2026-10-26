@@ -37,6 +37,7 @@ make serve PORT=8080
 ├── index.html       # Interfaz, controles y elementos de las gráficas
 ├── style.css        # Diseño visual y distribución responsiva
 ├── simulation.js    # Física, método de Euler, gráficas y animación
+├── presentacion.html # Presentación Reveal.js de 3 diapositivas
 ├── Makefile         # Comandos de validación y ejecución
 └── README.md        # Documentación del proyecto
 ```
@@ -178,3 +179,13 @@ make check
 ```
 
 Este comando verifica la sintaxis de `simulation.js` y que los tres archivos principales existan.
+
+## Presentación
+
+Abrir `presentacion.html` en un servidor local para ver la presentación Reveal.js. Por ejemplo:
+
+```bash
+make serve PORT=8080
+```
+
+Luego visitar [http://localhost:8080/presentacion.html](http://localhost:8080/presentacion.html). Las gráficas usan Plotly y permiten hover, zoom y pan. La presentación conserva el modelo educativo de densidad exponencial y recalcula `k(t)` en cada paso de Euler para el salto desde aproximadamente 40 km y para una cápsula de reentrada.
